@@ -1,0 +1,63 @@
+# node-http-proxy-middleware
+
+> [!WARNING]  
+> WIP project
+
+Easy-to-use HTTP proxy middleware for Node.js.
+
+## Usage
+
+Here's how you can use `node-http-proxy-middleware` to create proxy servers:
+
+```ts
+import { createServer } from "node:http";
+import { createProxyMiddleware } from "./src";
+
+// Simple proxy server
+createServer(createProxyMiddleware("https://example.net")).listen(8080);
+
+// Proxy server with specific configuration
+createServer(
+    createProxyMiddleware({
+        mount: "/npm",
+        target: "https://cdn.jsdelivr.net/npm",
+        location: "rewrite",
+    })
+).listen(8081);
+
+// Proxy server with conditional middleware
+createServer((req, res) => {
+    if (req.url.startsWith("/npm")) {
+        const mw = createProxyMiddleware({
+            mount: "/npm",
+            target: "https://cdn.jsdelivr.net/npm",
+            location: "rewrite",
+        });
+        return mw(req, res);
+    }
+
+    if (req.url.startsWith("/gh")) {
+        const mw = createProxyMiddleware({
+            mount: "/gh",
+            target: "https://cdn.jsdelivr.net/gh",
+            location: "rewrite",
+        });
+        return mw(req, res);
+    }
+
+    res.end("Resource not found");
+}).listen(8082);
+```
+
+This middleware is compatible with Express as well:
+
+```js
+const app = express();
+
+app.use("/example", createProxyMiddleware("https://example.net"));
+```
+
+## Note
+
+WebSocket is not supported and there are no plans to add support.  
+If WebSocket support is crucial for your application, consider using a different library such as [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware).
