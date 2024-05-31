@@ -21,7 +21,19 @@ function isUrl(u: string) {
 
 export type LocationStrategy = "same" | "rewrite" | "redirect";
 
-export function rewriteLocation(mount: string, target: string, location: string, strategy: LocationStrategy): string {
+export function rewriteLocation({
+    strategy,
+    location,
+    target,
+    url,
+    mount,
+}: {
+    strategy: LocationStrategy;
+    location: string;
+    url: string;
+    mount: string;
+    target: string;
+}): string {
     switch (strategy) {
         case "same":
             return location;
@@ -41,14 +53,23 @@ export function rewriteLocation(mount: string, target: string, location: string,
                 }
 
                 if (!loc.pathname.startsWith(tgt.pathname)) {
-                    // beyond the proxy url, so no need to rewrite
+                    // location is out of target, so no need to rewrite
                     return location;
                 }
 
                 return mount + loc.pathname.replace(tgt.pathname, "");
-            }
+            } else {
+                if (!loc.pathname.startsWith(tgt.pathname)) {
+                    // location is out of target, so no need to rewrite
+                    return new URL(location, target).toString();
+                }
 
-            return loc.pathname.replace(tgt.pathname, "");
+                if (location.startsWith("/")) {
+                    return location.replace(tgt.pathname, mount);
+                } else {
+                    return loc.pathname.replace(tgt.pathname, mount) + loc.search;
+                }
+            }
         }
 
         default:

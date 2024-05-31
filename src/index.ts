@@ -1,5 +1,6 @@
 import { parse } from "node:url";
 import http from "node:http";
+import { Buffer } from "node:buffer";
 import { request } from "./request";
 import { MaybeRewrite, rewrite, LocationStrategy, rewriteLocation } from "./rewrite";
 
@@ -39,11 +40,16 @@ export interface ProxyOptions {
  * @param proxyOptions Highly recommend that both `mount` and `target` should end with '/'
  * @param requestOptions  Additional options that apply to the request
  * @param responseOptions For rewrite the response send back to the client, note that if you provide a rewrite function, it will be called twice, the second time is for trailers
+ * @param rewriteBody The `responseOptions` allows you to rewrite all other stuff, if rewriteBody is specified, we stop streaming (pipe) and collect the entire body for rewrite. NOTE: you MUST carefully consider whether some encoding related header should also be rewritten.
  */
 export function createProxyMiddleware(
     proxyOptions: string | ProxyOptions,
     requestOptions?: Partial<http.RequestOptions>,
-    responseOptions?: MaybeRewrite<Pick<http.IncomingMessage, "statusCode" | "statusMessage" | "headers" | "trailers">>
+    responseOptions?: MaybeRewrite<Pick<http.IncomingMessage, "statusCode" | "statusMessage" | "headers" | "trailers">>,
+    rewriteBody?: (
+        body: Buffer,
+        info: Pick<http.IncomingMessage, "statusCode" | "statusMessage" | "headers" | "trailers">
+    ) => Buffer
 ): Middleware {
     const {
         mount = "/",
@@ -104,21 +110,44 @@ export function createProxyMiddleware(
             const modRes = rewrite(toModRes, responseOptions);
 
             const headers = modRes.headers;
-            headers["location"] &&= rewriteLocation(mount, target, headers["location"], locationStrategy);
+            headers["location"] &&= rewriteLocation({
+                mount,
+                target,
+                url: u,
+                location: headers["location"],
+                strategy: locationStrategy,
+            });
 
             // send proxy head
             res.writeHead(modRes.statusCode!, modRes.statusMessage, headers);
 
-            // only for trailers
-            proxyReq.on("end", (proxyRes) => {
+            const chunks: Buffer[] = [];
+            if (rewriteBody) {
+                proxyRes.on("data", (chunk: Buffer) => {
+                    chunks.push(chunk);
+                });
+            }
+
+            // for rewrite trailers
+            proxyReq.on("end", (proxyRes: http.IncomingMessage) => {
+                if (rewriteBody) {
+                    rewriteBody(Buffer.concat(chunks), toModRes);
+                }
+
                 toModRes.trailers = proxyRes.trailers;
                 const { trailers } = rewrite(toModRes, responseOptions);
-                trailers["location"] &&= rewriteLocation(mount, target, trailers["location"], locationStrategy);
+                trailers["location"] &&= rewriteLocation({
+                    mount,
+                    target,
+                    url: u,
+                    location: trailers["location"],
+                    strategy: locationStrategy,
+                });
                 res.addTrailers(trailers);
             });
 
             try {
-                proxyRes.pipe(res);
+                if (!rewriteBody) proxyRes.pipe(res);
             } catch (e) {
                 onError(e);
             }

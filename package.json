@@ -12,7 +12,8 @@
         "dist"
     ],
     "scripts": {
-        "build": "unbuild"
+        "build": "unbuild",
+        "test": "tsx --test src/*.test.ts"
     },
     "devDependencies": {
         "@types/node": "^20.12.12",
