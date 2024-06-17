@@ -16,7 +16,7 @@
         "test": "tsx --test src/*.test.ts"
     },
     "devDependencies": {
-        "@types/node": "^20.12.12",
+        "@types/node": "^20.14.2",
         "unbuild": "^2.0.0"
     }
 }

@@ -26,12 +26,16 @@ export function rewriteLocation({
     location,
     target,
     url,
-    mount,
+    base,
 }: {
     strategy: LocationStrategy;
+    /** The location header */
     location: string;
+    /** Mount base pathname */
+    base: string;
+    /** Current requested URL (that gives us location header) */
     url: string;
-    mount: string;
+    /** Target to proxy for, this is used for checking the rewrite scope */
     target: string;
 }): string {
     switch (strategy) {
@@ -57,7 +61,7 @@ export function rewriteLocation({
                     return location;
                 }
 
-                return mount + loc.pathname.replace(tgt.pathname, "");
+                return base + loc.pathname.replace(tgt.pathname, "");
             } else {
                 if (!loc.pathname.startsWith(tgt.pathname)) {
                     // location is out of target, so no need to rewrite
@@ -65,9 +69,9 @@ export function rewriteLocation({
                 }
 
                 if (location.startsWith("/")) {
-                    return location.replace(tgt.pathname, mount);
+                    return location.replace(tgt.pathname, base);
                 } else {
-                    return loc.pathname.replace(tgt.pathname, mount) + loc.search;
+                    return loc.pathname.replace(tgt.pathname, base) + loc.search;
                 }
             }
         }

@@ -1,18 +1,18 @@
-import { parse } from "node:url";
 import http from "node:http";
+import { parse } from "node:url";
 import { Buffer } from "node:buffer";
-import { request } from "./request";
-import { MaybeRewrite, rewrite, LocationStrategy, rewriteLocation } from "./rewrite";
+import { request } from "./request.ts";
+import { MaybeRewrite, rewrite, LocationStrategy, rewriteLocation } from "./rewrite.ts";
 
 export type Middleware = http.RequestListener<typeof http.IncomingMessage, typeof http.ServerResponse>;
 
 export interface ProxyOptions {
     /**
-     * The mount pathname, must starts with '/'.
+     * The base pathname, must starts with '/', recommend to ends with '/'.
      * Middleware only handle when req.path starts with the mount path.
      * @default "/"
      */
-    mount?: string;
+    base?: string;
     /**
      * The target URL, for example `https://example.net/subpath/`.
      */
@@ -52,7 +52,7 @@ export function createProxyMiddleware(
     ) => Buffer
 ): Middleware {
     const {
-        mount = "/",
+        base = "/",
         target,
         onError = console.error,
         location: locationStrategy = "same",
@@ -63,10 +63,10 @@ export function createProxyMiddleware(
 
     return (req, res) => {
         const path = req.url || "/";
-        if (!path.startsWith(mount)) return; // DO NOT handle when unmatched
+        if (!path.startsWith(base)) return; // DO NOT handle when unmatched
 
         // apply target url for request
-        const u = target + path.replace(mount, "");
+        const u = target + path.replace(base, "");
         const nodeUrl = parse(u, false, true);
 
         reqOptions = Object.assign(reqOptions, nodeUrl);
@@ -111,7 +111,7 @@ export function createProxyMiddleware(
 
             const headers = modRes.headers;
             headers["location"] &&= rewriteLocation({
-                mount,
+                base,
                 target,
                 url: u,
                 location: headers["location"],
@@ -137,7 +137,7 @@ export function createProxyMiddleware(
                 toModRes.trailers = proxyRes.trailers;
                 const { trailers } = rewrite(toModRes, responseOptions);
                 trailers["location"] &&= rewriteLocation({
-                    mount,
+                    base,
                     target,
                     url: u,
                     location: trailers["location"],

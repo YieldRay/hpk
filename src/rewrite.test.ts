@@ -1,13 +1,13 @@
 import { describe, it } from "node:test";
 import * as assert from "node:assert";
-import { rewriteLocation } from "./rewrite";
+import { rewriteLocation } from "./rewrite.ts";
 
 describe("rewriteLocation", () => {
     it("strategy redirect", () => {
         assert.equal(
             rewriteLocation({
                 strategy: "redirect",
-                mount: "/npm/",
+                base: "/npm/",
                 target: "https://cdn.jsdelivr.net/npm/",
                 url: "https://cdn.jsdelivr.net/npm/pkg",
                 location: "/npm/pkg@1.0.0",
@@ -20,7 +20,7 @@ describe("rewriteLocation", () => {
         assert.equal(
             rewriteLocation({
                 strategy: "rewrite",
-                mount: "/npm/",
+                base: "/npm/",
                 target: "https://cdn.jsdelivr.net/npm/",
                 url: "https://cdn.jsdelivr.net/npm/pkg",
                 location: "/npm/pkg@1.0.0",
@@ -31,7 +31,7 @@ describe("rewriteLocation", () => {
         assert.equal(
             rewriteLocation({
                 strategy: "rewrite",
-                mount: "/npm/",
+                base: "/npm/",
                 target: "https://cdn.jsdelivr.net/npm/",
                 url: "https://cdn.jsdelivr.net/npm/pkg",
                 location: "pkg@1.0.0",
@@ -42,7 +42,7 @@ describe("rewriteLocation", () => {
         assert.equal(
             rewriteLocation({
                 strategy: "rewrite",
-                mount: "/jsd/",
+                base: "/jsd/",
                 target: "https://cdn.jsdelivr.net/npm/",
                 url: "https://cdn.jsdelivr.net/npm/pkg",
                 location: "/external/pkg@1.0.0",
@@ -53,7 +53,7 @@ describe("rewriteLocation", () => {
         assert.equal(
             rewriteLocation({
                 strategy: "rewrite",
-                mount: "/jsd/",
+                base: "/jsd/",
                 target: "https://cdn.jsdelivr.net/npm/",
                 url: "https://cdn.jsdelivr.net/npm/pkg",
                 location: "/npm/pkg@1.0.0",
@@ -64,7 +64,7 @@ describe("rewriteLocation", () => {
         assert.equal(
             rewriteLocation({
                 strategy: "rewrite",
-                mount: "/jsd/",
+                base: "/jsd/",
                 target: "https://cdn.jsdelivr.net/npm/",
                 url: "https://cdn.jsdelivr.net/npm/pkg",
                 location: "pkg@1.0.0",

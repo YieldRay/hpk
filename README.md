@@ -11,8 +11,8 @@ Easy-to-use HTTP proxy middleware for Node.js.
 
 -   Rewrite response status, headers, trailers, and body
 -   Customize requests using Node.js's built-in `http.request`
--   Smartly rewrite the location header based on the mount path
--   Proxy for subpaths and mount at any subpath
+-   Smartly rewrite the location header based on the base path
+-   Proxy for subpaths and base at any subpath
 -   Zero dependencies, requiring only built-in Node.js modules
 
 **Not supported:**
@@ -34,7 +34,7 @@ createServer(createProxyMiddleware("https://example.net")).listen(8080);
 // Proxy server with specific configuration
 createServer(
     createProxyMiddleware({
-        mount: "/npm/",
+        base: "/npm/",
         target: "https://cdn.jsdelivr.net/npm/",
         location: "rewrite",
     })
@@ -44,7 +44,7 @@ createServer(
 createServer((req, res) => {
     if (req.url.startsWith("/npm/")) {
         const mw = createProxyMiddleware({
-            mount: "/npm/",
+            base: "/npm/",
             target: "https://cdn.jsdelivr.net/npm",
             location: "rewrite",
         });
@@ -53,7 +53,7 @@ createServer((req, res) => {
 
     if (req.url.startsWith("/gh/")) {
         const mw = createProxyMiddleware({
-            mount: "/gh/",
+            base: "/gh/",
             target: "https://cdn.jsdelivr.net/gh",
             location: "rewrite",
         });
