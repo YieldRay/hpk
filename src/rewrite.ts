@@ -25,7 +25,6 @@ export function rewriteLocation({
     strategy,
     location,
     target,
-    url,
     base,
 }: {
     strategy: LocationStrategy;
@@ -33,8 +32,6 @@ export function rewriteLocation({
     location: string;
     /** Mount base pathname */
     base: string;
-    /** Current requested URL (that gives us location header) */
-    url: string;
     /** Target to proxy for, this is used for checking the rewrite scope */
     target: string;
 }): string {
@@ -51,20 +48,20 @@ export function rewriteLocation({
             const tgt = new URL(target);
 
             if (isUrl(location)) {
-                if (loc.protocol !== tgt.protocol && loc.host !== tgt.host) {
+                if (loc.origin !== tgt.origin) {
                     // external url, no need to rewrite
                     return location;
                 }
 
                 if (!loc.pathname.startsWith(tgt.pathname)) {
-                    // location is out of target, so no need to rewrite
+                    // location is out of target's scope
                     return location;
                 }
 
                 return base + loc.pathname.replace(tgt.pathname, "");
             } else {
                 if (!loc.pathname.startsWith(tgt.pathname)) {
-                    // location is out of target, so no need to rewrite
+                    // location is out of target's scope
                     return new URL(location, target).toString();
                 }
 

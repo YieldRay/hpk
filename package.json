@@ -13,10 +13,12 @@
     ],
     "scripts": {
         "build": "unbuild",
-        "test": "tsx --test src/*.test.ts"
+        "test": "tsx --test src/*.test.ts",
+        "coverage":" tsx --experimental-test-coverage src/*.test.ts"
     },
     "devDependencies": {
-        "@types/node": "^20.14.2",
+        "@types/node": "^20.16.5",
         "unbuild": "^2.0.0"
-    }
+    },
+    "packageManager": "pnpm@9.10.0"
 }

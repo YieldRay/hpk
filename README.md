@@ -42,23 +42,17 @@ createServer(
 
 // Proxy server with conditional middleware
 createServer((req, res) => {
-    if (req.url.startsWith("/npm/")) {
-        const mw = createProxyMiddleware({
-            base: "/npm/",
-            target: "https://cdn.jsdelivr.net/npm",
-            location: "rewrite",
-        });
-        return mw(req, res);
-    }
+    createProxyMiddleware({
+        base: "/npm/",
+        target: "https://cdn.jsdelivr.net/npm",
+        location: "rewrite",
+    })(req, res);
 
-    if (req.url.startsWith("/gh/")) {
-        const mw = createProxyMiddleware({
-            base: "/gh/",
-            target: "https://cdn.jsdelivr.net/gh",
-            location: "rewrite",
-        });
-        return mw(req, res);
-    }
+    createProxyMiddleware({
+        base: "/gh/",
+        target: "https://cdn.jsdelivr.net/gh",
+        location: "rewrite",
+    })(req, res);
 
     res.end("Resource not found");
 }).listen(8082);
