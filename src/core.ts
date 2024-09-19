@@ -65,7 +65,10 @@ export function createProxyMiddleware(
         if (!path.startsWith(base)) return; // DO NOT handle when unmatched
 
         // apply target url for request
-        const u = target + path.replace(base, "");
+        let replacePath = path.replace(base, "");
+        if (!replacePath.startsWith("/")) replacePath = "/" + replacePath;
+        const u = target + replacePath;
+
         const nodeUrl = parse(u, false, true);
 
         reqOptions = Object.assign(reqOptions, nodeUrl);

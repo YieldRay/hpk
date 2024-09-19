@@ -14,7 +14,7 @@
     "scripts": {
         "build": "unbuild",
         "test": "tsx --test src/*.test.ts",
-        "coverage":" tsx --experimental-test-coverage src/*.test.ts"
+        "coverage": " tsx --experimental-test-coverage src/*.test.ts"
     },
     "devDependencies": {
         "@types/node": "^20.16.5",

@@ -15,7 +15,7 @@ export function rewrite<T>(original: T, rewriter?: MaybeRewrite<T>) {
     }
 }
 
-function isUrl(u: string) {
+export function isUrl(u: string) {
     return u.startsWith("http://") || u.startsWith("https://");
 }
 
