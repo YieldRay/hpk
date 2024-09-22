@@ -111,7 +111,10 @@ function server(
             }
 
             createProxyMiddleware({ target: url, base, location }, {}, (o) => {
-                if (acao) o.headers["access-control-allow-origin"] = acao;
+                if (acao) {
+                    o.headers["access-control-allow-origin"] = acao;
+                    o.headers["access-control-allow-methods"] = "*";
+                }
                 return o;
             })(req, res);
 

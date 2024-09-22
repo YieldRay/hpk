@@ -72,5 +72,8 @@ app.use("/example/", createProxyMiddleware("https://example.net"));
 ## CLI
 
 ```sh
-npx npk
+npx hpk -h
+
+# example
+hpk https://example.net --cors=*
 ```
