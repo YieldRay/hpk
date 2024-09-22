@@ -3,6 +3,9 @@
 > [!WARNING]  
 > This is a WIP project.
 
+[![npm](https://img.shields.io/npm/v/hpk)](https://www.npmjs.com/package/hpk)
+[![install size](https://packagephobia.com/badge?p=hpk)](https://packagephobia.com/result?p=hpk)
+
 Easy-to-use HTTP Proxy Kit for Node.js.
 
 ## Features
@@ -75,5 +78,5 @@ app.use("/example/", createProxyMiddleware("https://example.net"));
 npx hpk -h
 
 # example
-hpk https://example.net --cors=*
+hpk https://example.net --port 8080 --cors
 ```
