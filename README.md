@@ -1,15 +1,15 @@
-# node-http-proxy-middleware
+# hpk
 
 > [!WARNING]  
 > This is a WIP project.
 
-Easy-to-use HTTP proxy middleware for Node.js.
+Easy-to-use HTTP Proxy Kit for Node.js.
 
 ## Features
 
 **Supported by this library:**
 
--   Rewrite response status, headers, trailers, and body
+-   Rewrite response status and headers
 -   Customize requests using Node.js's built-in `http.request`
 -   Smartly rewrite the location header based on the base path
 -   Proxy for subpaths and base at any subpath
@@ -22,11 +22,11 @@ If WebSocket support is crucial for your application, consider using a different
 
 ## Usage
 
-Here's how you can use `node-http-proxy-middleware` to create proxy servers:
+Here's how you can use `hpk` to create proxy servers:
 
 ```ts
 import { createServer } from "node:http";
-import { createProxyMiddleware } from "./src";
+import { createProxyMiddleware } from "hpk";
 
 // Simple proxy server
 createServer(createProxyMiddleware("https://example.net")).listen(8080);
