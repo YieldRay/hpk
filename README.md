@@ -68,3 +68,9 @@ const app = express();
 
 app.use("/example/", createProxyMiddleware("https://example.net"));
 ```
+
+## CLI
+
+```sh
+npx npk
+```

@@ -42,6 +42,26 @@ const { values, positionals } = parseArgs({
     allowPositionals: true,
 });
 
+/**
+ * https://github.com/YieldRay/terminal-sequences/blob/main/sgr/style.ts
+ */
+const SGR = {
+    reset: "\x1b[0m",
+    bright: "\x1b[1m",
+    dim: "\x1b[2m",
+    italic: "\x1b[3m",
+    underscore: "\x1b[4m",
+    reverse: "\x1b[7m",
+    black: "\x1b[30m",
+    red: "\x1b[31m",
+    green: "\x1b[32m",
+    yellow: "\x1b[33m",
+    blue: "\x1b[34m",
+    magenta: "\x1b[35m",
+    cyan: "\x1b[36m",
+    white: "\x1b[37m",
+};
+
 if (values.help) {
     help();
 } else {
@@ -54,12 +74,12 @@ if (values.help) {
         location: values.location as LocationStrategy,
         base: values.base,
     }).then((port) => {
-        console.log(`Listening on:\n- Local: http://localhost:${port}\n`);
+        console.log(`Listening on:\n- Local: ${SGR.cyan}http://localhost:${port}${SGR.reset}\n`);
     });
 }
 
 function help() {
-    console.log(`hpk <url>
+    console.log(`${SGR.bright}hpk${SGR.reset} <url>
 USAGE:
     hpk <url> [options]
 Options:
@@ -67,7 +87,7 @@ Options:
     --base <PATH>         Mount Base  (default: /)
     --location <STRATEGY> same | rewrite | redirect (default: rewrite)
     --cors [<ORIGIN>]     CORS allowed origin`);
-    process.exit(1);
+    process.exit(0);
 }
 
 function server(
@@ -97,10 +117,12 @@ function server(
 
             res.on("finish", () => {
                 const duration = Date.now() - beginTime;
+                const ok = res.statusCode < 400;
+                const c = ok ? SGR.green : SGR.red;
                 console.log(
-                    `${new Date(beginTime).toLocaleString()} [${req.method}] ${res.statusCode} ${
-                        req.url
-                    } (${duration} ms)`
+                    `${new Date(beginTime).toLocaleString()} [${req.method}] ${c}${res.statusCode}${
+                        SGR.reset
+                    } ${req.url} ${SGR.black}(${duration} ms)${SGR.reset}`
                 );
             });
         })
