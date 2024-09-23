@@ -20,7 +20,8 @@ export interface ProxyOptions {
      */
     target: string;
     /**
-     * This is only for the proxy request, the original error event for the server is not trapped.
+     * Note that this is ONLY for the proxy request and piping.
+     * You should handle errors for req and res for your own.
      */
     onError?: (e: unknown) => void;
     /**
@@ -45,7 +46,7 @@ export interface ProxyOptions {
  */
 export function createProxyMiddleware(
     proxyOptions: string | ProxyOptions,
-    requestOptions?: Partial<http.RequestOptions>,
+    requestOptions?: MaybeRewrite<Partial<http.RequestOptions>>,
     responseOptions?: MaybeRewrite<
         Pick<http.IncomingMessage, "statusCode" | "statusMessage" | "headers">
     >
@@ -58,8 +59,6 @@ export function createProxyMiddleware(
         dropEncodingHeaders = false,
     } = typeof proxyOptions === "string" ? { target: proxyOptions } : proxyOptions;
 
-    let reqOptions = { ...requestOptions };
-
     return (req, res) => {
         const path = req.url || "/";
         if (!path.startsWith(base)) return; // DO NOT handle when unmatched
@@ -71,7 +70,7 @@ export function createProxyMiddleware(
 
         const nodeUrl = parse(u, false, true);
 
-        reqOptions = Object.assign(reqOptions, nodeUrl);
+        let reqOptions: Partial<http.RequestOptions> = nodeUrl;
         reqOptions.method = req.method;
 
         if (!reqOptions.protocol) {
@@ -93,8 +92,9 @@ export function createProxyMiddleware(
         }
 
         reqOptions = Object.assign({ headers: requestHeaders }, reqOptions);
+        const modReqOptions = rewrite(reqOptions, requestOptions);
 
-        const proxyReq = request(reqOptions, (proxyRes) => {
+        const proxyReq = request(modReqOptions, (proxyRes) => {
             const responseHeaders = { ...proxyRes.headers };
 
             delete responseHeaders["connection"];
@@ -103,11 +103,12 @@ export function createProxyMiddleware(
                 delete responseHeaders["transfer-encoding"];
             }
 
-            const toModRes = {
-                headers: responseHeaders,
-                statusCode: proxyRes.statusCode,
-                statusMessage: proxyRes.statusMessage,
-            };
+            const toModRes: Pick<http.IncomingMessage, "statusCode" | "statusMessage" | "headers"> =
+                {
+                    headers: responseHeaders,
+                    statusCode: proxyRes.statusCode,
+                    statusMessage: proxyRes.statusMessage,
+                };
             const modRes = rewrite(toModRes, responseOptions);
 
             const headers = modRes.headers;

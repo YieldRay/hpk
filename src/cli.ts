@@ -31,6 +31,11 @@ const { values, positionals } = parseArgs({
         },
         cors: {
             type: "string",
+            multiple: true,
+        },
+        "cors-origin": {
+            type: "boolean",
+            default: false,
         },
         version: {
             type: "boolean",
@@ -60,6 +65,9 @@ const SGR = {
     magenta: "\x1b[35m",
     cyan: "\x1b[36m",
     white: "\x1b[37m",
+    bgBlue: "\x1b[44m",
+    bgRed: "\x1b[41m",
+    bgGreen: "\x1b[42m",
 };
 
 if (values.help) {
@@ -70,7 +78,7 @@ if (values.help) {
 
     server(url, {
         port: Number(values.port),
-        cors: values.cors,
+        cors: values["cors-origin"] ? true : values.cors?.join(","),
         location: values.location as LocationStrategy,
         base: values.base,
     }).then((port) => {
@@ -83,10 +91,11 @@ function help() {
 USAGE:
     hpk <url> [options]
 Options:
-    --port <PORT>         Port to listen on (default: ${PORT})
-    --base <PATH>         Mount Base  (default: /)
+    --port <PORT>         Port to listen on         (default: ${PORT})
+    --base <PATH>         Mount base path           (default: /)
     --location <STRATEGY> same | rewrite | redirect (default: rewrite)
-    --cors [<ORIGIN>]     CORS allowed origin`);
+    --cors [<ORIGIN>...]  Allowed CORS origin
+    --cors-origin         Add CORS headers by request origin header`);
     process.exit(0);
 }
 
@@ -119,13 +128,17 @@ function server(
             })(req, res);
 
             res.on("finish", () => {
-                const duration = Date.now() - beginTime;
+                const ms = Date.now() - beginTime;
+                const duration = ms < 1000 ? `${ms} ms` : `${ms / 1000} s`;
+
                 const ok = res.statusCode < 400;
-                const c = ok ? SGR.green : SGR.red;
+                const c = ok ? SGR.bgGreen : SGR.bgRed;
                 console.log(
-                    `${new Date(beginTime).toLocaleString()} [${req.method}] ${c}${res.statusCode}${
+                    `[hpk] ${new Date(beginTime).toLocaleString()} |${c} ${res.statusCode} ${
                         SGR.reset
-                    } ${req.url} ${SGR.black}(${duration} ms)${SGR.reset}`
+                    }|${SGR.blue} ${req.method!.padEnd(7)} ${SGR.reset}| ${req.url} ${
+                        SGR.black
+                    }(${duration})${SGR.reset}`
                 );
             });
         })
