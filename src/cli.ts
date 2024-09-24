@@ -119,7 +119,7 @@ function server(
                 acao = cors;
             }
 
-            createProxyMiddleware({ target: url, base, location }, {}, (o) => {
+            createProxyMiddleware({ target: url, base, location }, undefined, (o) => {
                 if (acao) {
                     o.headers["access-control-allow-origin"] = acao;
                     o.headers["access-control-allow-methods"] = "*";
