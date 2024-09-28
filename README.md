@@ -18,7 +18,7 @@ Easy-to-use **H**TTP **P**roxy **K**it for Node.js.
 **Not supported:**
 
 WebSocket support is not available and there are no plans to add it.  
-If WebSocket support is crucial for your application, consider using a different library such as [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware).
+If WebSocket support is crucial for your application, consider using a different library such as [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) and [httpxy](https://github.com/unjs/httpxy).
 
 ## Usage
 
