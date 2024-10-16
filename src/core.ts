@@ -1,7 +1,8 @@
 import http from "node:http";
 import { parse } from "node:url";
 import { request } from "./request.ts";
-import { MaybeRewrite, rewrite, LocationStrategy, rewriteLocation } from "./rewrite.ts";
+import { rewrite, rewriteLocation } from "./rewrite.ts";
+import type { MaybeRewrite, LocationStrategy } from "./rewrite.ts";
 
 export type Middleware = http.RequestListener<
     typeof http.IncomingMessage,
@@ -41,13 +42,13 @@ export interface ProxyOptions {
 
 /**
  * @param proxyOptions Highly recommend that both `mount` and `target` should end with '/'
- * @param requestOptions  Additional options that apply to the request
- * @param responseOptions For rewrite the response send back to the client, note that if you provide a rewrite function, it will be called twice, the second time is for trailers
+ * @param requestOptions  For rewrite (not merge) the request options
+ * @param responseOptions For rewrite (not merge) the response object
  */
 export function createProxyMiddleware(
     proxyOptions: string | ProxyOptions,
-    requestOptions?: MaybeRewrite<Partial<http.RequestOptions>>,
-    responseOptions?: MaybeRewrite<
+    rewriteRequestOptions?: MaybeRewrite<http.RequestOptions>,
+    rewriteResponseOptions?: MaybeRewrite<
         Pick<http.IncomingMessage, "statusCode" | "statusMessage" | "headers">
     >
 ): Middleware {
@@ -92,7 +93,7 @@ export function createProxyMiddleware(
         }
 
         reqOptions = Object.assign({ headers: requestHeaders }, reqOptions);
-        const modReqOptions = rewrite(reqOptions, requestOptions);
+        const modReqOptions = rewrite(reqOptions, rewriteRequestOptions);
 
         const proxyReq = request(modReqOptions, (proxyRes) => {
             const responseHeaders = { ...proxyRes.headers };
@@ -109,7 +110,7 @@ export function createProxyMiddleware(
                     statusCode: proxyRes.statusCode,
                     statusMessage: proxyRes.statusMessage,
                 };
-            const modRes = rewrite(toModRes, responseOptions);
+            const modRes = rewrite(toModRes, rewriteResponseOptions);
 
             const headers = modRes.headers;
 

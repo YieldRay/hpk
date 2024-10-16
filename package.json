@@ -22,11 +22,11 @@
         "coverage": " tsx --experimental-test-coverage src/*.test.ts"
     },
     "devDependencies": {
-        "@types/node": "^20.16.5",
+        "@types/node": "^20.16.11",
         "tsx": "^4.19.1",
         "unbuild": "^2.0.0"
     },
-    "packageManager": "pnpm@9.11.0",
+    "packageManager": "pnpm@9.12.2",
     "description": "http proxy kit",
     "keywords": [
         "proxy",
