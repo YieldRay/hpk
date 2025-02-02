@@ -82,7 +82,9 @@ if (values.help) {
         location: values.location as LocationStrategy,
         base: values.base,
     }).then((port) => {
-        console.log(`Listening on:\n- Local: ${SGR.cyan}http://localhost:${port}${SGR.reset}\n`);
+        console.log(
+            `hpx is listening on:\n- Local: ${SGR.cyan}http://localhost:${port}${SGR.reset}\n`
+        );
     });
 }
 

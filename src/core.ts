@@ -33,11 +33,6 @@ export interface ProxyOptions {
      * redirect: Redirect to the original url.
      */
     location?: LocationStrategy;
-
-    /**
-     * [experimental] Delete some encoding related headers
-     */
-    dropEncodingHeaders?: boolean;
 }
 
 /**
@@ -57,10 +52,12 @@ export function createProxyMiddleware(
         target,
         onError = console.error,
         location: locationStrategy = "same",
-        dropEncodingHeaders = false,
     } = typeof proxyOptions === "string" ? { target: proxyOptions } : proxyOptions;
 
-    return (req, res) => {
+    return (
+        /** we make sure this object unchanged for code readability */ req,
+        /** this object is used to send proxied response */ res
+    ) => {
         const path = req.url || "/";
         if (!path.startsWith(base)) return; // DO NOT handle when unmatched
 
@@ -80,29 +77,30 @@ export function createProxyMiddleware(
             reqOptions.protocol = protocol;
         }
 
+        // request headers that will be used for `request`
         const requestHeaders = { ...req.headers };
+        delete requestHeaders["host"];
         requestHeaders["host"] = (nodeUrl.host || nodeUrl.hostname)!;
-        delete requestHeaders["connection"];
 
-        if (dropEncodingHeaders) {
-            delete requestHeaders["accept-encoding"];
+        // RFC 9110 7.6.1. Connection
+        for (const k of ["proxy-connection", "keep-alive", "te", "transfer-encoding", "upgrade"]) {
+            delete requestHeaders[k];
         }
 
-        if (req.httpVersion === "1.0") {
-            delete requestHeaders["transfer-encoding"];
+        /** sets `content-length` to '0' if request is of DELETE type */
+        if (
+            (req.method === "DELETE" || req.method === "OPTIONS") &&
+            !requestHeaders["content-length"]
+        ) {
+            requestHeaders["content-length"] = "0";
         }
 
         reqOptions = Object.assign({ headers: requestHeaders }, reqOptions);
         const modReqOptions = rewrite(reqOptions, rewriteRequestOptions);
 
+        // now, send the request to the target
         const proxyReq = request(modReqOptions, (proxyRes) => {
             const responseHeaders = { ...proxyRes.headers };
-
-            delete responseHeaders["connection"];
-            if (dropEncodingHeaders) {
-                delete responseHeaders["content-encoding"];
-                delete responseHeaders["transfer-encoding"];
-            }
 
             const toModRes: Pick<http.IncomingMessage, "statusCode" | "statusMessage" | "headers"> =
                 {
@@ -121,6 +119,11 @@ export function createProxyMiddleware(
                 location: headers["location"],
                 strategy: locationStrategy,
             });
+
+            // rewrite trailers
+            if (proxyRes.trailers && Object.keys(proxyRes.trailers).length) {
+                headers["trailer"] = Object.keys(proxyRes.trailers).join(", ");
+            }
 
             // send proxy head
             res.writeHead(modRes.statusCode!, modRes.statusMessage, headers);
