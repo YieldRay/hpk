@@ -47,28 +47,46 @@ const { values, positionals } = parseArgs({
     allowPositionals: true,
 });
 
-/**
- * https://github.com/YieldRay/terminal-sequences/blob/main/sgr/style.ts
- */
-const SGR = {
-    reset: "\x1b[0m",
-    bright: "\x1b[1m",
-    dim: "\x1b[2m",
-    italic: "\x1b[3m",
-    underscore: "\x1b[4m",
-    reverse: "\x1b[7m",
-    black: "\x1b[30m",
-    red: "\x1b[31m",
-    green: "\x1b[32m",
-    yellow: "\x1b[33m",
-    blue: "\x1b[34m",
-    magenta: "\x1b[35m",
-    cyan: "\x1b[36m",
-    white: "\x1b[37m",
-    bgBlue: "\x1b[44m",
-    bgRed: "\x1b[41m",
-    bgGreen: "\x1b[42m",
-};
+const styles = {
+    bold: "1",
+    dim: "2",
+    italic: "3",
+    underline: "4",
+    inverse: "7",
+    strikethrough: "9",
+    black: "30",
+    red: "31",
+    green: "32",
+    yellow: "33",
+    blue: "34",
+    magenta: "35",
+    cyan: "36",
+    white: "37",
+    default: "39",
+    blackBg: "40",
+    redBg: "41",
+    greenBg: "42",
+    yellowBg: "43",
+    blueBg: "44",
+    magentaBg: "45",
+    cyanBg: "46",
+    whiteBg: "47",
+    defaultBg: "49",
+} as const;
+
+function styled(options: Array<keyof typeof styles>, text: string | number) {
+    const ESC = "\x1b[";
+    const RESET = "\x1b[0m";
+    let ansiCode = `${ESC}`;
+    for (const [i, option] of options.entries()) {
+        ansiCode += styles[option];
+        if (i < options.length - 1) {
+            ansiCode += ";";
+        }
+    }
+    ansiCode += "m";
+    return `${ansiCode}${text}${RESET}`;
+}
 
 if (values.help) {
     help();
@@ -83,15 +101,15 @@ if (values.help) {
         base: values.base,
     }).then((port) => {
         console.log(
-            `hpx is listening on:\n- Local: ${SGR.cyan}http://localhost:${port}${SGR.reset}\n`
+            `hpx is listening on:\n- Local: ${styled(["cyan"], `http://localhost:${port}`)}\n`
         );
     });
 }
 
 function help() {
-    console.log(`${SGR.bright}hpk${SGR.reset} <url>
+    console.log(`\
 USAGE:
-    hpk <url> [options]
+    ${styled(["bold"], "hpk")} <url> [options]
 Options:
     --port <PORT>         Port to listen on         (default: ${PORT})
     --base <PATH>         Mount base path           (default: /)
@@ -132,16 +150,13 @@ function server(
             res.on("finish", () => {
                 const ms = Date.now() - beginTime;
                 const duration = ms < 1000 ? `${ms} ms` : `${ms / 1000} s`;
-
                 const ok = res.statusCode < 400;
-                const c = ok ? SGR.bgGreen : SGR.bgRed;
-                console.log(
-                    `[hpk] ${new Date(beginTime).toLocaleString()} |${c} ${res.statusCode} ${
-                        SGR.reset
-                    }|${SGR.blue} ${req.method!.padEnd(7)} ${SGR.reset}| ${req.url} ${
-                        SGR.black
-                    }(${duration})${SGR.reset}`
-                );
+                const lDate = new Date(beginTime).toLocaleString();
+                const lStatusCode = styled([ok ? "green" : "red"], res.statusCode);
+                const lMethod = styled(["blue"], req.method!.padEnd(7));
+                const lUrl = req.url;
+                const lDuration = styled(["black"], "(" + duration + ")");
+                console.log(`[hpk] ${lDate} | ${lStatusCode} | ${lMethod} | ${lUrl} ${lDuration}`);
             });
         })
             .listen(port)

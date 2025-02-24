@@ -18,15 +18,15 @@
     ],
     "scripts": {
         "build": "unbuild",
-        "test": "tsx --test src/*.test.ts",
-        "coverage": " tsx --experimental-test-coverage src/*.test.ts"
+        "test": "node --experimental-transform-types --test src/*.test.ts",
+        "coverage": "node --experimental-transform-types --experimental-test-coverage src/*.test.ts",
+        "hpk": "node --experimental-transform-types src/cli.ts"
     },
     "devDependencies": {
-        "@types/node": "^22.13.0",
-        "tsx": "^4.19.2",
+        "@types/node": "^22.13.5",
         "unbuild": "^3.3.1"
     },
-    "packageManager": "pnpm@9.15.4",
+    "packageManager": "pnpm@10.4.1",
     "description": "http proxy kit",
     "keywords": [
         "proxy",
