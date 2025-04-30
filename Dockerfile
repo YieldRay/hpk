@@ -3,5 +3,6 @@ WORKDIR /app
 COPY src/ /app/src/
 COPY package.json entrypoint.sh /app/
 ENV NODE_ENV=production
-EXPOSE 8090
+ENV PORT=80
+EXPOSE 80
 CMD ["sh", "/app/entrypoint.sh"]

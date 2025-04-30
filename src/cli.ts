@@ -37,6 +37,9 @@ const { values, positionals } = parseArgs({
             type: "boolean",
             default: false,
         },
+        referer: {
+            type: "string",
+        },
         version: {
             type: "boolean",
             short: "v",
@@ -59,6 +62,7 @@ if (values.help) {
     server(url, {
         port: Number(values.port),
         cors: values["cors-origin"] ? true : values.cors?.join(","),
+        referer: values.referer,
         location: values.location as LocationStrategy,
         base: values.base,
     }).then((port) => {
@@ -91,9 +95,10 @@ function server(
         base?: string;
         location?: LocationStrategy;
         cors?: string | boolean;
+        referer?: string | boolean;
     }
 ) {
-    const { port = PORT, cors = false, base, location } = options;
+    const { port = PORT, cors = false, referer = false, base, location } = options;
     return new Promise<number>((resolve, reject) => {
         createServer((req, res) => {
             const beginTime = Date.now();
@@ -111,22 +116,35 @@ function server(
                 acao = cors;
             }
 
-            createProxyMiddleware({ target: url, base, location }, undefined, (o) => {
-                if (origin && acao) {
-                    o.headers["access-control-allow-origin"] = acao;
-                    o.headers["access-control-allow-credentials"] = "true";
-                    if (method === "OPTIONS") {
-                        o.headers["access-control-max-age"] = "7200";
-                        o.headers["access-control-allow-headers"] =
-                            req.headers["access-control-request-headers"] || "*";
-                        o.headers["access-control-allow-methods"] =
-                            req.headers["access-control-request-method"];
-                    } else {
-                        o.headers["access-control-expose-headers"] = "*";
+            createProxyMiddleware(
+                { target: url, base, location },
+                (req) => {
+                    if (referer) {
+                        if (referer === true) {
+                            req.headers!["referer"] = url;
+                        } else {
+                            req.headers!["referer"] = referer;
+                        }
                     }
+                    return req;
+                },
+                (res) => {
+                    if (origin && acao) {
+                        res.headers["access-control-allow-origin"] = acao;
+                        res.headers["access-control-allow-credentials"] = "true";
+                        if (method === "OPTIONS") {
+                            res.headers["access-control-max-age"] = "7200";
+                            res.headers["access-control-allow-headers"] =
+                                req.headers["access-control-request-headers"] || "*";
+                            res.headers["access-control-allow-methods"] =
+                                req.headers["access-control-request-method"];
+                        } else {
+                            res.headers["access-control-expose-headers"] = "*";
+                        }
+                    }
+                    return res;
                 }
-                return o;
-            })(req, res);
+            )(req, res);
 
             res.on("finish", () => {
                 const ms = Date.now() - beginTime;
