@@ -4,6 +4,7 @@ import { parseArgs, styleText } from "node:util";
 import { createServer } from "node:http";
 import { createProxyMiddleware } from "./core.ts";
 import { isUrl, type LocationStrategy } from "./rewrite.ts";
+import { setCORSHeaders } from "./middleware.ts";
 
 const PORT = Number(process.env.PORT) || 8090;
 
@@ -129,19 +130,7 @@ function server(
                     return req;
                 },
                 (res) => {
-                    if (origin && acao) {
-                        res.headers["access-control-allow-origin"] = acao;
-                        res.headers["access-control-allow-credentials"] = "true";
-                        if (method === "OPTIONS") {
-                            res.headers["access-control-max-age"] = "7200";
-                            res.headers["access-control-allow-headers"] =
-                                req.headers["access-control-request-headers"] || "*";
-                            res.headers["access-control-allow-methods"] =
-                                req.headers["access-control-request-method"];
-                        } else {
-                            res.headers["access-control-expose-headers"] = "*";
-                        }
-                    }
+                    setCORSHeaders(req, res.headers, acao);
                     return res;
                 }
             )(req, res);

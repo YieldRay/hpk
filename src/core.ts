@@ -3,11 +3,8 @@ import { parse } from "node:url";
 import { request } from "./request.ts";
 import { rewrite, rewriteLocation } from "./rewrite.ts";
 import type { MaybeRewrite, LocationStrategy } from "./rewrite.ts";
-
-export type Middleware = http.RequestListener<
-    typeof http.IncomingMessage,
-    typeof http.ServerResponse
->;
+import type { Middleware } from "./middleware.ts";
+import { removeRestrictionHeaders } from "./middleware.ts";
 
 export interface ProxyOptions {
     /**
@@ -33,6 +30,7 @@ export interface ProxyOptions {
      * redirect: Redirect to the original url.
      */
     location?: LocationStrategy;
+    removeRestrictionHeaders?: boolean;
 }
 
 /**
@@ -52,6 +50,7 @@ export function createProxyMiddleware(
         target,
         onError = console.error,
         location: locationStrategy = "same",
+        removeRestrictionHeaders: isRemoveRestrictionHeaders = false,
     } = typeof proxyOptions === "string" ? { target: proxyOptions } : proxyOptions;
 
     return (
@@ -100,7 +99,12 @@ export function createProxyMiddleware(
 
         // now, send the request to the target
         const proxyReq = request(modReqOptions, (proxyRes) => {
-            const responseHeaders = { ...proxyRes.headers };
+            let responseHeaders = { ...proxyRes.headers };
+
+            // remove restriction headers
+            if (isRemoveRestrictionHeaders) {
+                responseHeaders = removeRestrictionHeaders(responseHeaders);
+            }
 
             const toModRes: Pick<http.IncomingMessage, "statusCode" | "statusMessage" | "headers"> =
                 {
