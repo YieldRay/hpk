@@ -15,6 +15,21 @@ export function rewrite<T>(original: T, rewriter?: MaybeRewrite<T>) {
     }
 }
 
+/**
+ * @returns A boolean indicating whether or not an absolute URL,
+ * or a relative URL combined with a base URL, are parsable and valid.
+ */
+export const canParseURL =
+    Reflect.get(URL, "canParse") ||
+    ((input: string, base?: string) => {
+        try {
+            new URL(input, base);
+            return true;
+        } catch {
+            return false;
+        }
+    });
+
 export function isUrl(u: string) {
     return u.startsWith("http://") || u.startsWith("https://");
 }

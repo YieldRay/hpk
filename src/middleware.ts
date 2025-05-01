@@ -12,26 +12,11 @@ export type MiddlewareRequest = Parameters<Middleware>[0];
 export type MiddlewareResponse = Parameters<Middleware>[1];
 
 /**
- * @returns A boolean indicating whether or not an absolute URL,
- * or a relative URL combined with a base URL, are parsable and valid.
- */
-export const canParseURL =
-    Reflect.get(URL, "canParse") ||
-    ((input: string, base?: string) => {
-        try {
-            new URL(input, base);
-            return true;
-        } catch {
-            return false;
-        }
-    });
-
-/**
  * Creates a CORS middleware function for handling CORS requests.
  * @param allowedOrigins - List of allowed origins for CORS. If not provided, all origins are allowed.
  */
 export function createCORSMiddleware(allowedOrigins?: string[]): Middleware {
-    const originsSet = new Set(allowedOrigins || []);
+    const originsSet = new Set(allowedOrigins);
     originsSet.delete("*");
 
     return (req, res) => {

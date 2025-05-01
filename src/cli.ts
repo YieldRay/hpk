@@ -11,20 +11,10 @@ const PORT = Number(process.env.PORT) || 8090;
 // https://nodejs.org/api/util.html#utilparseargsconfig
 const { values, positionals } = parseArgs({
     options: {
-        help: {
-            type: "boolean",
-            multiple: false,
-            short: "h",
-            default: false,
-        },
         port: {
             type: "string",
             short: "p",
             default: String(PORT),
-        },
-        base: {
-            type: "string",
-            default: "/",
         },
         location: {
             type: "string",
@@ -34,12 +24,14 @@ const { values, positionals } = parseArgs({
             type: "string",
             multiple: true,
         },
-        "cors-origin": {
-            type: "boolean",
-            default: false,
-        },
         referer: {
             type: "string",
+        },
+        help: {
+            type: "boolean",
+            multiple: false,
+            short: "h",
+            default: false,
         },
         version: {
             type: "boolean",
@@ -60,12 +52,15 @@ if (values.help) {
         url = `http://${url}`;
     }
 
+    const corsSet = new Set(values.cors?.flatMap((origins) => origins.split(",")));
+    const hasStar = corsSet.has("*");
+    corsSet.delete("*");
+
     server(url, {
         port: Number(values.port),
-        cors: values["cors-origin"] ? true : values.cors?.join(","),
+        cors: hasStar ? true : Array.from(corsSet).join(","),
         referer: values.referer,
         location: values.location as LocationStrategy,
-        base: values.base,
     }).then((port) => {
         console.log(
             `hpx is listening on:
@@ -82,10 +77,9 @@ USAGE:
     ${styleText(["bold"], "hpk")} <url> [options]
 Options:
     --port <PORT>         Port to listen on         (default: ${PORT})
-    --base <PATH>         Mount base path           (default: /)
     --location <STRATEGY> same | rewrite | redirect (default: rewrite)
     --cors [<ORIGIN>...]  Allowed CORS origin
-    --cors-origin         Add CORS headers by request origin header`);
+    --referer <URL>       Request with extra referer header to origin server`);
     process.exit(0);
 }
 
@@ -93,13 +87,19 @@ function server(
     url: string,
     options: {
         port?: number;
-        base?: string;
         location?: LocationStrategy;
+        /**
+         * true: allow all origins (by request origin)
+         *
+         * false / empty string: no CORS headers
+         *
+         * string: allow only this origin(s)
+         */
         cors?: string | boolean;
         referer?: string | boolean;
     }
 ) {
-    const { port = PORT, cors = false, referer = false, base, location } = options;
+    const { port = PORT, cors = false, referer = false, location } = options;
     return new Promise<number>((resolve, reject) => {
         createServer((req, res) => {
             const beginTime = Date.now();
@@ -113,12 +113,12 @@ function server(
                 // cors=true
                 acao = origin !== "null" ? origin : "*";
             } else if (cors) {
-                // cors=<ORIGIN>
+                // cors=<ORIGIN> (when cors is not empty string)
                 acao = cors;
             }
 
             createProxyMiddleware(
-                { target: url, base, location },
+                { target: url, location },
                 (req) => {
                     if (referer) {
                         if (referer === true) {

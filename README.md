@@ -89,11 +89,11 @@ docker run -d \
   -e URL=https://i.pximg.net \
   -e CORS=https://my.domain \
   -e REFERER=https://pixiv.net \
-  ghcr.io/yieldray/hpk:dev
+  ghcr.io/yieldray/hpk:main
 ```
 
-| Env     | Description                                          |
-| ------- | ---------------------------------------------------- |
-| URL     | Required, the origin server url                      |
-| CORS    | Optional, allow only specified origin to bypass cors |
-| REFERER | Optional, add extra referer header to origin server  |
+| Env     | Description                                                               |
+| ------- | ------------------------------------------------------------------------- |
+| URL     | Required, the origin server url                                           |
+| CORS    | Optional, allow only specified origin to bypass cors, or `*` to allow all |
+| REFERER | Optional, request with extra referer header to origin server              |
