@@ -3,11 +3,13 @@ name: Publish on NPM
 on:
     workflow_dispatch:
     push:
+        branches:
+            - main
         paths:
-            - "package.json"
+            - package.json
 
 permissions:
-    contents: read
+    contents: write
     id-token: write
 
 jobs:
@@ -36,3 +38,24 @@ jobs:
               with:
                   token: ${{secrets.NPM_TOKEN}}
                   provenance: true
+
+            - name: Tag
+              id: tag
+              uses: yieldray/tag-with-npm-version@main
+              with:
+                  prefix: v
+                  force: true
+
+            - if: steps.tag.outputs.skip == 'false'
+              run: |
+                  npm pack
+
+            - name: Release on GitHub
+              if: steps.tag.outputs.skip == 'false'
+              uses: softprops/action-gh-release@v1
+              with:
+                  tag_name: v${{ steps.tag.outputs.version }}
+                  draft: false
+                  generate_release_notes: true
+                  files: |
+                      *.tgz

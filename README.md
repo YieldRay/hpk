@@ -69,7 +69,7 @@ const app = express();
 app.use("/example/", createProxyMiddleware("https://example.net"));
 ```
 
-## CLI
+### CLI
 
 ```sh
 # use npx
@@ -80,3 +80,20 @@ npm i -g hpk
 # example
 hpk https://example.net --port=8080 --cors=*
 ```
+
+### Docker
+
+```sh
+docker run -d \
+  -p 8080:80 \
+  -e URL=https://i.pximg.net \
+  -e CORS=https://my.domain \
+  -e REFERER=https://pixiv.net \
+  ghcr.io/yieldray/hpk:dev
+```
+
+| Env     | Description                                          |
+| ------- | ---------------------------------------------------- |
+| URL     | Required, the origin server url                      |
+| CORS    | Optional, allow only specified origin to bypass cors |
+| REFERER | Optional, add extra referer header to origin server  |
