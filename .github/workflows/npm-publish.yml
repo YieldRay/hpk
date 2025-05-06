@@ -34,27 +34,21 @@ jobs:
               run: npm run build
 
             - name: Publishing on NPM
+              id: publish
               uses: JS-DevTools/npm-publish@v3
               with:
                   token: ${{secrets.NPM_TOKEN}}
                   provenance: true
 
-            - name: Tag
-              id: tag
-              uses: yieldray/tag-with-npm-version@main
-              with:
-                  prefix: v
-                  force: true
-
-            - if: steps.tag.outputs.skip == 'false'
+            - if: ${{ steps.publish.outputs.type }}
               run: |
                   npm pack
 
             - name: Release on GitHub
-              if: steps.tag.outputs.skip == 'false'
+              if: ${{ steps.publish.outputs.type }}
               uses: softprops/action-gh-release@v1
               with:
-                  tag_name: v${{ steps.tag.outputs.version }}
+                  tag_name: v${{ steps.publish.outputs.version }}
                   draft: false
                   generate_release_notes: true
                   files: |
