@@ -24,6 +24,10 @@ const { values, positionals } = parseArgs({
             type: "string",
             multiple: true,
         },
+        "disable-log": {
+            type: "boolean",
+            default: false,
+        },
         referer: {
             type: "string",
         },
@@ -63,10 +67,11 @@ if (values.help) {
         location: values.location as LocationStrategy,
     }).then((port) => {
         console.log(
-            `hpx is listening on:
-- Local: ${styleText(["cyan"], `http://localhost:${port}`)}
-- For:   ${styleText(["cyan"], url)}
-`
+            `${styleText(["bold"], "hpk")} is running for ${styleText(
+                ["underline"],
+                url
+            )} and listening on:
+- Local: ${styleText(["cyan"], `http://localhost:${port}`)}`
         );
     });
 }
@@ -135,17 +140,22 @@ function server(
                 }
             )(req, res);
 
-            res.on("finish", () => {
-                const ms = Date.now() - beginTime;
-                const duration = ms < 1000 ? `${ms} ms` : `${ms / 1000} s`;
-                const ok = res.statusCode < 400;
-                const lDate = new Date(beginTime).toLocaleString();
-                const lStatusCode = styleText([ok ? "green" : "red"], String(res.statusCode));
-                const lMethod = styleText(["blue"], method!.padEnd(7));
-                const lUrl = req.url;
-                const lDuration = styleText(["black"], "(" + duration + ")");
-                console.log(`[hpk] ${lDate} | ${lStatusCode} | ${lMethod} | ${lUrl} ${lDuration}`);
-            });
+            // disable-log: don't log the request
+            if (!values["disable-log"]) {
+                res.on("finish", () => {
+                    const ms = Date.now() - beginTime;
+                    const duration = ms < 1000 ? `${ms} ms` : `${ms / 1000} s`;
+                    const ok = res.statusCode < 400;
+                    const lDate = new Date(beginTime).toLocaleString();
+                    const lStatusCode = styleText([ok ? "green" : "red"], String(res.statusCode));
+                    const lMethod = styleText(["blue"], method!.padEnd(7));
+                    const lUrl = req.url;
+                    const lDuration = styleText(["black"], "(" + duration + ")");
+                    console.log(
+                        `[hpk] ${lDate} | ${lStatusCode} | ${lMethod} | ${lUrl} ${lDuration}`
+                    );
+                });
+            }
         })
             .listen(port)
             .on("listening", () => resolve(port))
