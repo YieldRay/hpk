@@ -23,10 +23,10 @@
         "hpk": "node --experimental-transform-types src/cli.ts"
     },
     "devDependencies": {
-        "@types/node": "^22.15.12",
-        "unbuild": "^3.5.0"
+        "@types/node": "^22.18.8",
+        "unbuild": "^3.6.1"
     },
-    "packageManager": "pnpm@10.10.0",
+    "packageManager": "pnpm@10.17.1",
     "engines": {
         "node": ">=20"
     },
