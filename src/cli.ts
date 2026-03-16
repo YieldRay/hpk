@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import process from "node:process";
 import { parseArgs, styleText } from "node:util";
-import { createServer } from "node:http";
+import { createServer, type IncomingHttpHeaders, type OutgoingHttpHeaders } from "node:http";
 import { createProxyMiddleware } from "./core.ts";
 import { isUrl, type LocationStrategy } from "./rewrite.ts";
 import { setCORSHeaders } from "./middleware.ts";
@@ -122,23 +122,30 @@ function server(
                 acao = cors;
             }
 
-            createProxyMiddleware(
-                { target: url, location },
-                (req) => {
-                    if (referer) {
-                        if (referer === true) {
-                            req.headers!["referer"] = url;
-                        } else {
-                            req.headers!["referer"] = referer;
+            if (acao && method === "OPTIONS") {
+                // for preflight request, response directly without proxying
+                const headers: IncomingHttpHeaders = {};
+                setCORSHeaders(req, headers, acao);
+                res.writeHead(204, headers).end();
+            } else {
+                createProxyMiddleware(
+                    { target: url, location },
+                    (req) => {
+                        if (referer) {
+                            if (referer === true) {
+                                (req.headers as OutgoingHttpHeaders).referer = url;
+                            } else {
+                                (req.headers as OutgoingHttpHeaders).referer = referer;
+                            }
                         }
+                        return req;
+                    },
+                    (res) => {
+                        setCORSHeaders(req, res.headers, acao);
+                        return res;
                     }
-                    return req;
-                },
-                (res) => {
-                    setCORSHeaders(req, res.headers, acao);
-                    return res;
-                }
-            )(req, res);
+                )(req, res);
+            }
 
             // disable-log: don't log the request
             if (!values["disable-log"]) {
