@@ -114,7 +114,11 @@ export function createProxyMiddleware(
                 };
             const modRes = rewrite(toModRes, rewriteResponseOptions);
 
-            const headers = modRes.headers;
+            // copy headers form modRes.headers
+            const headers: http.OutgoingHttpHeaders = {};
+            for (const [k, v] of Object.entries(modRes.headers)) {
+                if (v != null) headers[k] = v;
+            }
 
             // auto rewrite location
             headers["location"] &&= rewriteLocation({

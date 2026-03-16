@@ -65,8 +65,10 @@ export function setCORSHeaders(
     headers["access-control-allow-credentials"] = "true";
     if (req.method === "OPTIONS") {
         headers["access-control-max-age"] = "7200";
-        headers["access-control-allow-headers"] = headers["access-control-request-headers"] || "*";
-        headers["access-control-allow-methods"] = headers["access-control-request-method"];
+        headers["access-control-allow-headers"] =
+            req.headers["access-control-request-headers"] || "*";
+        headers["access-control-allow-methods"] =
+            req.headers["access-control-request-method"] || "*";
     } else {
         headers["access-control-expose-headers"] = "*";
     }

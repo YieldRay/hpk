@@ -1,6 +1,6 @@
 {
     "name": "hpk",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "type": "module",
     "exports": {
         ".": {
@@ -23,10 +23,10 @@
         "hpk": "node --experimental-transform-types src/cli.ts"
     },
     "devDependencies": {
-        "@types/node": "^22.18.8",
+        "@types/node": "^22.19.15",
         "unbuild": "^3.6.1"
     },
-    "packageManager": "pnpm@10.17.1",
+    "packageManager": "pnpm@10.32.1",
     "engines": {
         "node": ">=20"
     },
