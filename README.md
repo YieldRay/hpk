@@ -9,12 +9,12 @@ Easy-to-use **H**TTP **P**roxy **K**it for Node.js.
 
 **Supported by this library:**
 
--   Rewrite response status and headers
--   Customize requests using Node.js's built-in `http.request`
--   Smartly rewrite the location header based on the base path
--   Proxy for subpaths and base at any subpath
--   Zero dependencies, requiring only built-in Node.js modules
--   WebSocket proxy support
+- Rewrite response status and headers
+- Customize requests using Node.js's built-in `http.request`
+- Smartly rewrite the location header based on the base path
+- Proxy for subpaths and base at any subpath
+- Zero dependencies, requiring only built-in Node.js modules
+- WebSocket proxy support
 
 ## Usage
 
@@ -29,28 +29,28 @@ createServer(createProxyMiddleware("https://example.net")).listen(8080);
 
 // Proxy server with specific configuration
 createServer(
-    createProxyMiddleware({
-        base: "/npm/",
-        target: "https://cdn.jsdelivr.net/npm/",
-        location: "rewrite",
-    })
+  createProxyMiddleware({
+    base: "/npm/",
+    target: "https://cdn.jsdelivr.net/npm/",
+    location: "rewrite",
+  }),
 ).listen(8081);
 
 // Proxy server with conditional middleware
 createServer((req, res) => {
-    createProxyMiddleware({
-        base: "/npm/",
-        target: "https://cdn.jsdelivr.net/npm",
-        location: "rewrite",
-    })(req, res);
+  createProxyMiddleware({
+    base: "/npm/",
+    target: "https://cdn.jsdelivr.net/npm",
+    location: "rewrite",
+  })(req, res);
 
-    createProxyMiddleware({
-        base: "/gh/",
-        target: "https://cdn.jsdelivr.net/gh",
-        location: "rewrite",
-    })(req, res);
+  createProxyMiddleware({
+    base: "/gh/",
+    target: "https://cdn.jsdelivr.net/gh",
+    location: "rewrite",
+  })(req, res);
 
-    res.end("Resource not found");
+  res.end("Resource not found");
 }).listen(8082);
 ```
 
@@ -74,8 +74,8 @@ Both `ws://` and `wss://` targets are supported. The `base` option works the sam
 
 ```ts
 server.on(
-    "upgrade",
-    createWebSocketProxy("wss://example.net/socket/", { base: "/ws/" })
+  "upgrade",
+  createWebSocketProxy("wss://example.net/socket/", { base: "/ws/" }),
 );
 ```
 

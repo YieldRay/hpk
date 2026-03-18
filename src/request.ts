@@ -10,12 +10,12 @@ export type HTTPRequestOptions = string | http.RequestOptions | URL;
  * http2 is not supported
  */
 export function request(
-    options: HTTPRequestOptions,
-    callback?: (res: http.IncomingMessage) => void
+  options: HTTPRequestOptions,
+  callback?: (res: http.IncomingMessage) => void,
 ): http.ClientRequest {
-    // we use the legacy parse function rather than URL
-    // because it's consist with request options
-    const url = parse(format(options), false, true);
-    const module = url.protocol === "https:" ? https : http;
-    return module.request(options, callback);
+  // we use the legacy parse function rather than URL
+  // because it's consist with request options
+  const url = parse(format(options), false, true);
+  const module = url.protocol === "https:" ? https : http;
+  return module.request(options, callback);
 }
