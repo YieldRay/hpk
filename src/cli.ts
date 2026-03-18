@@ -5,6 +5,7 @@ import { createServer, type IncomingHttpHeaders, type OutgoingHttpHeaders } from
 import { createProxyMiddleware } from "./core.ts";
 import { isUrl, type LocationStrategy } from "./rewrite.ts";
 import { setCORSHeaders } from "./middleware.ts";
+import { createWebSocketProxy } from "./ws.ts";
 
 const PORT = Number(process.env.PORT) || 8090;
 
@@ -30,6 +31,10 @@ const { values, positionals } = parseArgs({
         },
         referer: {
             type: "string",
+        },
+        "no-ws": {
+            type: "boolean",
+            default: false,
         },
         help: {
             type: "boolean",
@@ -65,6 +70,7 @@ if (values.help) {
         cors: hasStar ? true : Array.from(corsSet).join(","),
         referer: values.referer,
         location: values.location as LocationStrategy,
+        ws: !values["no-ws"],
     }).then((port) => {
         console.log(
             `${styleText(["bold"], "hpk")} is running for ${styleText(
@@ -84,7 +90,8 @@ Options:
     --port <PORT>         Port to listen on         (default: ${PORT})
     --location <STRATEGY> same | rewrite | redirect (default: rewrite)
     --cors [<ORIGIN>...]  Allowed CORS origin
-    --referer <URL>       Request with extra referer header to origin server`);
+    --referer <URL>       Request with extra referer header to origin server
+    --no-ws               Disable WebSocket proxy`);
     process.exit(0);
 }
 
@@ -102,11 +109,13 @@ function server(
          */
         cors?: string | boolean;
         referer?: string | boolean;
+        /** Enable WebSocket proxy (default: true) */
+        ws?: boolean;
     }
 ) {
-    const { port = PORT, cors = false, referer = false, location } = options;
+    const { port = PORT, cors = false, referer = false, location, ws = true } = options;
     return new Promise<number>((resolve, reject) => {
-        createServer((req, res) => {
+        const httpServer = createServer((req, res) => {
             const beginTime = Date.now();
 
             const { method } = req;
@@ -163,7 +172,13 @@ function server(
                     );
                 });
             }
-        })
+        });
+
+        if (ws) {
+            httpServer.on("upgrade", createWebSocketProxy(url));
+        }
+
+        httpServer
             .listen(port)
             .on("listening", () => resolve(port))
             .on("error", reject);

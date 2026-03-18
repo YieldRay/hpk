@@ -62,7 +62,11 @@ export function createProxyMiddleware(
 
         // apply target url for request
         let replacePath = path.replace(base, "");
-        if (!replacePath.startsWith("/")) replacePath = "/" + replacePath;
+        if (target.endsWith("/")) {
+            replacePath = replacePath.replace(/^\//, "");
+        } else if (!replacePath.startsWith("/")) {
+            replacePath = "/" + replacePath;
+        }
         const u = target + replacePath;
 
         const nodeUrl = parse(u, false, true);

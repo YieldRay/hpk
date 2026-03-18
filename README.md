@@ -14,11 +14,7 @@ Easy-to-use **H**TTP **P**roxy **K**it for Node.js.
 -   Smartly rewrite the location header based on the base path
 -   Proxy for subpaths and base at any subpath
 -   Zero dependencies, requiring only built-in Node.js modules
-
-**Not supported:**
-
-WebSocket support is not available and there are no plans to add it.  
-If WebSocket support is crucial for your application, consider using a different library such as [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) and [httpxy](https://github.com/unjs/httpxy).
+-   WebSocket proxy support
 
 ## Usage
 
@@ -58,6 +54,31 @@ createServer((req, res) => {
 }).listen(8082);
 ```
 
+### WebSocket proxy
+
+Use `createWebSocketProxy` to proxy WebSocket connections. Attach it to your server's `upgrade` event:
+
+```ts
+import { createServer } from "node:http";
+import { createProxyMiddleware, createWebSocketProxy } from "hpk";
+
+const server = createServer(createProxyMiddleware("https://example.net"));
+
+// Proxy WebSocket upgrades to the same target
+server.on("upgrade", createWebSocketProxy("https://example.net"));
+
+server.listen(8080);
+```
+
+Both `ws://` and `wss://` targets are supported. The `base` option works the same way as in `createProxyMiddleware`:
+
+```ts
+server.on(
+    "upgrade",
+    createWebSocketProxy("wss://example.net/socket/", { base: "/ws/" })
+);
+```
+
 This middleware is also compatible with Express:
 
 ```js
@@ -79,6 +100,9 @@ npm i -g hpk
 
 # example
 hpk https://example.net --port=8080 --cors=*
+
+# disable WebSocket proxy
+hpk https://example.net --no-ws
 ```
 
 ### Docker
