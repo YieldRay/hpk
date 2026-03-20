@@ -8,8 +8,8 @@ import { removeRestrictionHeaders } from "./middleware.ts";
 
 export interface ProxyOptions {
   /**
-   * The base pathname, must starts with '/', recommend to ends with '/'.
-   * Middleware only handle when req.path starts with the mount path.
+   * The base pathname, must start with '/', recommended to end with '/'.
+   * Middleware only handles when req.path starts with the mount path.
    * @default "/"
    */
   base?: string;
@@ -19,13 +19,13 @@ export interface ProxyOptions {
   target: string;
   /**
    * Note that this is ONLY for the proxy request and piping.
-   * You should handle errors for req and res for your own.
+   * You should handle errors for req and res on your own.
    */
   onError?: (e: unknown) => void;
   /**
    * same: Do nothing (default)
    *
-   * rewrite: Rewrite (when is not external site) based on the `mount`
+   * rewrite: Rewrite (when not an external site) based on the `mount`
    *
    * redirect: Redirect to the original url.
    */
@@ -56,7 +56,7 @@ export function createProxyMiddleware(
     : proxyOptions;
 
   return (
-    /** we make sure this object unchanged for code readability */ req,
+    /** we keep this object unchanged for code readability */ req,
     /** this object is used to send proxied response */ res,
   ) => {
     const path = req.url || "/";
@@ -77,7 +77,7 @@ export function createProxyMiddleware(
     reqOptions.method = req.method;
 
     if (!reqOptions.protocol) {
-      // auto determined protocol when not specified by `options.target`
+      // protocol auto-determined when not specified by `options.target`
       const protocol = (req.socket as { encrypted?: boolean }).encrypted
         ? "https:"
         : "http:";
@@ -98,14 +98,6 @@ export function createProxyMiddleware(
       "upgrade",
     ]) {
       delete requestHeaders[k];
-    }
-
-    /** sets `content-length` to '0' if request is of DELETE type */
-    if (
-      (req.method === "DELETE" || req.method === "OPTIONS") &&
-      !requestHeaders["content-length"]
-    ) {
-      requestHeaders["content-length"] = "0";
     }
 
     reqOptions = Object.assign({ headers: requestHeaders }, reqOptions);
@@ -130,7 +122,7 @@ export function createProxyMiddleware(
       };
       const modRes = rewrite(toModRes, rewriteResponseOptions);
 
-      // copy headers form modRes.headers
+      // copy headers from modRes.headers
       const headers: http.OutgoingHttpHeaders = {};
       for (const [k, v] of Object.entries(modRes.headers)) {
         if (v != null) headers[k] = v;
@@ -145,16 +137,19 @@ export function createProxyMiddleware(
       });
 
       // rewrite trailers
-      if (proxyRes.trailers && Object.keys(proxyRes.trailers).length > 0) {
-        headers["trailer"] = Object.keys(proxyRes.trailers).join(", ");
-      }
+      // NOTE: proxyRes.trailers is only populated after the stream ends,
+      // so the Trailer header cannot be pre-announced here.
+      // if (proxyRes.trailers && Object.keys(proxyRes.trailers).length > 0) {
+      //   headers["trailer"] = Object.keys(proxyRes.trailers).join(", ");
+      // }
 
       // send proxy head
       res.writeHead(modRes.statusCode!, modRes.statusMessage, headers);
 
-      // for rewrite trailers
-      proxyReq.on("end", (proxyRes: http.IncomingMessage) => {
-        res.addTrailers(proxyRes.trailers);
+      proxyRes.on("end", () => {
+        if (proxyRes.trailers && Object.keys(proxyRes.trailers).length > 0) {
+          res.addTrailers(proxyRes.trailers);
+        }
       });
 
       try {

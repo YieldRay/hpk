@@ -163,31 +163,6 @@ describe("createProxyMiddleware", () => {
     }
   });
 
-  it("sets content-length: 0 for DELETE when not provided", async () => {
-    let receivedContentLength = "";
-    const { port: upPort, server: up } = await createUpstream((req, res) => {
-      receivedContentLength = req.headers["content-length"] ?? "";
-      res.writeHead(200);
-      res.end();
-    });
-    const { port: proxyPort, server: proxy } = await createProxy(
-      `http://127.0.0.1:${upPort}/`,
-    );
-
-    try {
-      await fetch({
-        host: "127.0.0.1",
-        port: proxyPort,
-        path: "/",
-        method: "DELETE",
-      });
-      assert.equal(receivedContentLength, "0");
-    } finally {
-      proxy.close();
-      up.close();
-    }
-  });
-
   it("does not override content-length for DELETE when already set", async () => {
     let receivedContentLength = "";
     const { port: upPort, server: up } = await createUpstream((req, res) => {

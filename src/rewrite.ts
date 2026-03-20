@@ -47,7 +47,7 @@ export function rewriteLocation({
   location: string;
   /** Mount base pathname */
   base: string;
-  /** Target to proxy for, this is used for checking the rewrite scope */
+  /** Target to proxy for, used to check the rewrite scope */
   target: string;
 }): string {
   switch (strategy) {

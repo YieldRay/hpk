@@ -78,12 +78,24 @@ export function createWebSocketProxy(
       upstream.destroy();
     });
 
-    // Once the upstream sends back the 101 Switching Protocols response,
-    // pipe both sockets together bidirectionally.
-    upstream.once("data", (chunk: Buffer) => {
-      socket.write(chunk);
+    // Buffer upstream data until we have the full HTTP response headers
+    // (delimited by \r\n\r\n), then forward the 101 and start piping.
+    let headerBuf = Buffer.alloc(0);
+    const onUpstreamData = (chunk: Buffer) => {
+      headerBuf = Buffer.concat([headerBuf, chunk]);
+      const sep = headerBuf.indexOf("\r\n\r\n");
+      if (sep === -1) return; // headers not complete yet
+
+      upstream.removeListener("data", onUpstreamData);
+      const headersEnd = sep + 4;
+      const head101 = headerBuf.subarray(0, headersEnd);
+      const remainder = headerBuf.subarray(headersEnd);
+
+      socket.write(head101);
+      if (remainder.length > 0) socket.write(remainder);
       upstream.pipe(socket);
       socket.pipe(upstream);
-    });
+    };
+    upstream.on("data", onUpstreamData);
   };
 }

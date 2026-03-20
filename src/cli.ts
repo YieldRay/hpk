@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 import process from "node:process";
+import { readFileSync } from "node:fs";
+import { networkInterfaces } from "node:os";
 import { parseArgs, styleText } from "node:util";
 import {
   createServer,
   type IncomingHttpHeaders,
+  type IncomingMessage,
   type OutgoingHttpHeaders,
+  type ServerResponse,
 } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
 import { createProxyMiddleware } from "./core.ts";
 import { isUrl, type LocationStrategy } from "./rewrite.ts";
 import { setCORSHeaders } from "./middleware.ts";
@@ -29,7 +34,7 @@ const { values, positionals } = parseArgs({
       type: "string",
       multiple: true,
     },
-    "disable-log": {
+    "no-log": {
       type: "boolean",
       default: false,
     },
@@ -39,6 +44,17 @@ const { values, positionals } = parseArgs({
     "no-ws": {
       type: "boolean",
       default: false,
+    },
+    host: {
+      type: "string",
+      short: "H",
+      default: "::",
+    },
+    cert: {
+      type: "string",
+    },
+    key: {
+      type: "string",
     },
     help: {
       type: "boolean",
@@ -71,20 +87,61 @@ if (values.help) {
   const hasStar = corsSet.has("*");
   corsSet.delete("*");
 
-  const port = await server(url, {
+  const https =
+    values.cert && values.key
+      ? { cert: readFileSync(values.cert), key: readFileSync(values.key) }
+      : undefined;
+
+  const host = values.host!;
+
+  server(url, {
     port: Number(values.port),
+    host,
     cors: hasStar ? true : [...corsSet].join(","),
     referer: values.referer,
     location: values.location as LocationStrategy,
     ws: !values["no-ws"],
+    https,
+    // eslint-disable-next-line unicorn/prefer-top-level-await
+  }).then((port) => {
+    const scheme = https ? "https" : "http";
+    const ipv4Only = host === "0.0.0.0";
+    const isAllInterfaces = ipv4Only || host === "::";
+    const lines = [
+      `- Local: ${styleText(["cyan"], `${scheme}://localhost:${port}`)}`,
+    ];
+    if (isAllInterfaces) {
+      const ipv4Lines: string[] = [];
+      const ipv6Lines: string[] = [];
+      const seen = new Set<string>();
+      for (const iface of Object.values(networkInterfaces())) {
+        for (const addr of iface ?? []) {
+          if (addr.internal || seen.has(addr.address)) continue;
+          seen.add(addr.address);
+          if (addr.family === "IPv4") {
+            ipv4Lines.push(
+              `- Network: ${styleText(["cyan"], `${scheme}://${addr.address}:${port}`)}`,
+            );
+          } else if (
+            !ipv4Only &&
+            addr.family === "IPv6" &&
+            !addr.address.startsWith("fe80")
+          ) {
+            ipv6Lines.push(
+              `- Network: ${styleText(["cyan"], `${scheme}://[${addr.address}]:${port}`)}`,
+            );
+          }
+        }
+      }
+      lines.push(...ipv4Lines, ...ipv6Lines);
+    }
+    console.log(
+      `${styleText(["bold"], "hpk")} is running for ${styleText(
+        ["underline", "bold"],
+        url,
+      )} and listening on:\n\n${lines.join("\n")}`,
+    );
   });
-  console.log(
-    `${styleText(["bold"], "hpk")} is running for ${styleText(
-      ["underline"],
-      url,
-    )} and listening on:
-- Local: ${styleText(["cyan"], `http://localhost:${port}`)}`,
-  );
 }
 
 function help() {
@@ -96,7 +153,11 @@ Options:
     --location <STRATEGY> same | rewrite | redirect (default: rewrite)
     --cors [<ORIGIN>...]  Allowed CORS origin
     --referer <URL>       Request with extra referer header to origin server
-    --no-ws               Disable WebSocket proxy`);
+    --host <HOST>         Host/IP to listen on      (default: ::)
+    --no-ws               Disable WebSocket proxy
+    --no-log              Disable request logging
+    --cert <FILE>         TLS certificate file (enables HTTPS)
+    --key  <FILE>         TLS private key file  (enables HTTPS)`);
   process.exit(0);
 }
 
@@ -116,17 +177,23 @@ function server(
     referer?: string | boolean;
     /** Enable WebSocket proxy (default: true) */
     ws?: boolean;
+    /** TLS options to enable HTTPS */
+    https?: { cert: Buffer; key: Buffer };
+    /** Host/IP to listen on (default: ::) */
+    host?: string;
   },
 ) {
   const {
     port = PORT,
+    host = "::",
     cors = false,
     referer = false,
     location,
     ws = true,
+    https: tlsOptions,
   } = options;
   return new Promise<number>((resolve, reject) => {
-    const httpServer = createServer((req, res) => {
+    const requestHandler = (req: IncomingMessage, res: ServerResponse) => {
       const beginTime = Date.now();
 
       const { method } = req;
@@ -167,8 +234,8 @@ function server(
         )(req, res);
       }
 
-      // disable-log: don't log the request
-      if (!values["disable-log"]) {
+      // no-log: don't log the request
+      if (!values["no-log"]) {
         res.on("finish", () => {
           const ms = Date.now() - beginTime;
           const duration = ms < 1000 ? `${ms} ms` : `${ms / 1000} s`;
@@ -186,14 +253,18 @@ function server(
           );
         });
       }
-    });
+    };
+
+    const httpServer = tlsOptions
+      ? createHttpsServer(tlsOptions, requestHandler)
+      : createServer(requestHandler);
 
     if (ws) {
       httpServer.on("upgrade", createWebSocketProxy(url));
     }
 
     httpServer
-      .listen(port)
+      .listen(port, host)
       .on("listening", () => resolve(port))
       .on("error", reject);
   });

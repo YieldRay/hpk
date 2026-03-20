@@ -14,7 +14,7 @@ export function request(
   callback?: (res: http.IncomingMessage) => void,
 ): http.ClientRequest {
   // we use the legacy parse function rather than URL
-  // because it's consist with request options
+  // because it's consistent with request options
   const url = parse(format(options), false, true);
   const module = url.protocol === "https:" ? https : http;
   return module.request(options, callback);

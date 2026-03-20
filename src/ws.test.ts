@@ -212,6 +212,56 @@ describe("createWebSocketProxy", () => {
     }
   });
 
+  it("handles 101 response split across multiple TCP chunks", async () => {
+    // Send the 101 response in two parts with a timer between them to guarantee
+    // the proxy receives two separate data events rather than one coalesced chunk.
+    const { server: upstream, port: upstreamPort } = await new Promise<{
+      server: net.Server;
+      port: number;
+    }>((resolve) => {
+      const server = net.createServer((socket) => {
+        socket.setNoDelay(true);
+        socket.once("data", () => {
+          // Set up echo before sending the 101 so it's ready when the tunnel opens
+          socket.on("data", (chunk) => socket.write(chunk));
+          socket.write("HTTP/1.1 101 Switching Protocols\r\n", () => {
+            setTimeout(() => {
+              socket.write("Upgrade: websocket\r\nConnection: Upgrade\r\n\r\n");
+            }, 10);
+          });
+        });
+      });
+      server.unref();
+      server.listen(0, "127.0.0.1", () => {
+        resolve({ server, port: (server.address() as net.AddressInfo).port });
+      });
+    });
+    const { server: proxy, port: proxyPort } = await createProxyServer(
+      `http://127.0.0.1:${upstreamPort}/`,
+    );
+
+    const socket = net.connect(proxyPort, "127.0.0.1");
+    socket.unref();
+    try {
+      sendUpgradeRequest(socket, "/", `127.0.0.1:${proxyPort}`);
+
+      const response = await readUntil(socket, (b) => b.includes("\r\n\r\n"));
+      assert.ok(response.includes("101"), `Expected 101, got: ${response}`);
+
+      // Verify the tunnel works after a split 101
+      const echoed = await new Promise<string>((resolve, reject) => {
+        socket.once("data", (chunk) => resolve(chunk.toString()));
+        socket.once("error", reject);
+        socket.write("ping");
+      });
+      assert.equal(echoed, "ping");
+    } finally {
+      socket.destroy();
+      proxy.close();
+      upstream.close();
+    }
+  });
+
   it("appends request path onto target base path", async () => {
     let receivedPath = "";
     const { server: upstream, port: upstreamPort } = await createFakeWsServer(
